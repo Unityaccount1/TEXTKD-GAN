@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import random
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 def length_sort(items, lengths, descending=True):
     """In order to use pytorch variable length sequence package"""
