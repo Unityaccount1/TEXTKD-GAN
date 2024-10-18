@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import random
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 def sentence_to_batch(inputStr, corpus, maxlen):
     vocab = corpus.dictionary.word2idx
