@@ -1,4 +1,4 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 def RandomUniformInitializer(shape, initrange = 0.1):
     return tf.random_uniform(shape = shape, minval = -initrange, maxval = initrange)
