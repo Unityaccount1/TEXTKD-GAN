@@ -1,4 +1,4 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from utils import Corpus, batchify, get_string
 from utils_debug import sentence_to_batch, get_string
 import time
