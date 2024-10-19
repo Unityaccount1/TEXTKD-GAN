@@ -1,9 +1,9 @@
 import tensorflow.compat.v1 as tf
 
 def RandomUniformInitializer(shape, initrange = 0.1):
-    return tf.random_uniform(shape = shape, minval = -initrange, maxval = initrange)
+    return tf.random.uniform(shape = shape, minval = -initrange, maxval = initrange)
 def NormalInitializer(shape, mean = 0, stddev = 0.02):
-    return tf.random_normal(shape = shape, mean = mean, stddev = stddev)
+    return tf.random.normal(shape = shape, mean = mean, stddev = stddev)
 
 class LeakyReluActivation(object):
     def __init__(self, alpha):
@@ -31,7 +31,7 @@ class LinearLayer(object):
 
 class EmbeddingLayer(object):
     def __init__(self, nhidden, ntokens, initrange):
-        self.W_values = tf.Variable(tf.random_uniform(shape = (nhidden, ntokens), minval = -initrange, maxval = initrange))
+        self.W_values = tf.Variable(tf.random.uniform(shape = (nhidden, ntokens), minval = -initrange, maxval = initrange))
     def __call__(self, input):
         return tf.nn.embedding_lookup(self.W_values, input)
 
@@ -111,12 +111,12 @@ class Seq2SeqLayer(object):
         self.embedding_decoder = EmbeddingLayer(ntokens, emsize, initrange)
 
         with tf.variable_scope('encoder'):
-            self.encoder = tf.contrib.rnn.BasicLSTMCell(nhidden)
+            self.encoder = tf.keras.layers.LSTMCell(nhidden)
 
         self.decoder_input_size = emsize+nhidden
 
         with tf.variable_scope('decoder'):
-            self.decoder = tf.contrib.rnn.BasicLSTMCell(nhidden)
+            self.decoder = tf.keras.layers.LSTMCell(nhidden)
 
         self.linear = LinearLayer(nhidden, ntokens)
 
@@ -139,20 +139,20 @@ class Seq2SeqLayer(object):
 
         # Encode
         # batch_size x maxLen x hSize
-        packed_output, state = tf.nn.dynamic_rnn(self.encoder, embeddings, sequence_length = lengths, dtype = tf.float32)
+        packed_output, state = tf.keras.layers.RNN(self.encoder, embeddings, sequence_length = lengths, dtype = tf.float32)
         cell, hidden = state
 
         # normalize to unit ball
         hidden = tf.nn.l2_normalize(hidden, 1)
 
         if noise and self.noise_radius > 0:
-            gauss_noise = tf.random_normal(tf.shape(hidden), mean=0, stddev=self.noise_radius)
+            gauss_noise = tf.random.normal(tf.shape(hidden), mean=0, stddev=self.noise_radius)
             hidden = hidden + gauss_noise
 
         return hidden # batch_size x nHidden
 
     def init_hidden(self):
-        return tf.contrib.rnn.LSTMStateTuple(tf.zeros((self.batch_size, self.nhidden)), tf.zeros((self.batch_size, self.nhidden)))
+        return [tf.zeros((self.batch_size, self.nhidden)), tf.zeros((self.batch_size, self.nhidden))]
 
     def init_state(self):
         return tf.zeros((self.batch_size, self.nhidden))
@@ -162,16 +162,18 @@ class Seq2SeqLayer(object):
         all_hidden = tf.tile(tf.expand_dims(hidden, 1), [1, maxlen, 1])
 
         if self.hidden_init:
+			
             # initialize decoder hidden state to encoder output
-            state = tf.contrib.rnn.LSTMStateTuple(hidden, self.init_state()) # (batch_size x nHidden, batch_size x nHidden)
+            # state = tf.contrib.rnn.LSTMStateTuple(hidden, self.init_state()) # (batch_size x nHidden, batch_size x nHidden)
+            state = [hidden, tf.zeros((self.batch_size, self.nhidden))]
         else:
-            state = self.init_hidden() # (batch_size x nHidden, batch_size x nHidden)
+          state = self.init_hidden() # (batch_size x nHidden, batch_size x nHidden)
 
         embeddings_decoded = self.embedding_decoder(indices) # batch_size x maxLen x embSize
         augmented_embeddings = tf.concat([embeddings_decoded, all_hidden], 2) # batch_size x maxLen x (embSize + nHidden)
 
         # batch_size x maxLen x (embSize + nHidden) -> batch_size x maxLen x nHidden
-        output, state = tf.nn.dynamic_rnn(self.decoder, augmented_embeddings, sequence_length = lengths, initial_state = state, dtype = tf.float32)
+        output, state = tf.keras.layers.RNN(self.decoder, augmented_embeddings, sequence_length = lengths, initial_state = state, dtype = tf.float32)
 
         decoded = tf.reshape(self.linear(tf.reshape(output, (self.batch_size * maxlen, self.nhidden))), (self.batch_size, maxlen, self.ntokens))
 
@@ -182,7 +184,8 @@ class Seq2SeqLayer(object):
 
         if self.hidden_init:
             # initialize decoder hidden state to encoder output
-            state = tf.contrib.rnn.LSTMStateTuple(hidden, self.init_state()) # (batch_size x nHidden, batch_size x nHidden)
+            # state = tf.contrib.rnn.LSTMStateTuple(hidden, self.init_state()) # (batch_size x nHidden, batch_size x nHidden)
+            state = [hidden, tf.zeros((self.batch_size, self.nhidden))]
         else:
             state = self.init_hidden() # (batch_size x nHidden, batch_size x nHidden)
 
@@ -196,7 +199,7 @@ class Seq2SeqLayer(object):
 
         with tf.variable_scope('decoder', reuse = reuse):
             for i in range(maxlen):
-                output, state = tf.nn.dynamic_rnn(self.decoder, inputs, initial_state = state, dtype = tf.float32)
+                output, state = tf.keras.layers.RNN(self.decoder, inputs, initial_state = state, dtype = tf.float32)
                 overvocab = self.linear(tf.squeeze(output), tf.constant(False))
 
                 if not sample:
