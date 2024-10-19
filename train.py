@@ -84,11 +84,11 @@ with tf.variable_scope(scope_critic):
 with tf.variable_scope(scope_generator):
     gan_gen = MLP_G(ninput=args.z_size, noutput=args.nhidden, layers=args.arch_g)
 
-source = tf.placeholder(tf.int64, [None, args.maxlen], name = 'source') # batch_size x maxLen
-target = tf.placeholder(tf.int64, [None, args.maxlen], name = 'target') # batch_size x maxLen
-lengths = tf.placeholder(tf.int64, [None], name = 'lengths')
-hidden_input = tf.placeholder(tf.float32, [None, args.nhidden], name = 'hidden_input')
-is_train = tf.placeholder(tf.bool, name='is_train')
+#source = tf.placeholder(tf.int64, [None, args.maxlen], name = 'source') # batch_size x maxLen
+#target = tf.placeholder(tf.int64, [None, args.maxlen], name = 'target') # batch_size x maxLen
+#lengths = tf.placeholder(tf.int64, [None], name = 'lengths')
+#hidden_input = tf.placeholder(tf.float32, [None, args.nhidden], name = 'hidden_input')
+#is_train = tf.placeholder(tf.bool, name='is_train')
 
 # Create sentence length mask over padding
 output = autoencoder(source, lengths, noise=True) # batch_size x maxLen x nHidden
